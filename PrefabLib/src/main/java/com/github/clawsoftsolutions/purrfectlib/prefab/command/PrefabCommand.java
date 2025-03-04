@@ -1,10 +1,10 @@
-package com.github.clawsoftsolutions.prefablib.command;
+package com.github.clawsoftsolutions.purrfectlib.prefab.command;
 
-import com.github.clawsoftsolutions.prefablib.encoding.PrefabEncoder;
-import com.github.clawsoftsolutions.prefablib.decoding.PrefabDecoder;
-import com.github.clawsoftsolutions.prefablib.renderering.PrefabGhostRenderer;
-import com.github.clawsoftsolutions.prefablib.utils.BlockData;
-import com.github.clawsoftsolutions.prefablib.utils.FileManagement;
+import com.github.clawsoftsolutions.purrfectlib.prefab.encoding.PrefabEncoder;
+import com.github.clawsoftsolutions.purrfectlib.prefab.decoding.PrefabDecoder;
+import com.github.clawsoftsolutions.purrfectlib.prefab.renderering.PrefabRenderer;
+import com.github.clawsoftsolutions.purrfectlib.prefab.utils.BlockData;
+import com.github.clawsoftsolutions.purrfectlib.prefab.utils.FileManagement;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -70,41 +70,44 @@ public class PrefabCommand {
     }
 
     private static int previewPrefab(String name, BlockPos pos, CommandSourceStack source) throws CommandSyntaxException {
-        System.out.println("Attempting to preview prefab: " + name);
-
-        CompoundTag tag = FileManagement.loadPrefab(name);
-        if (tag == null) {
-            System.err.println("Error: Prefab not found: " + name);
-            source.sendFailure(Component.literal("Prefab not found: " + name));
-            return 0;
-        }
-
-        List<BlockData> blocks = PrefabDecoder.decodePrefab(tag);
-        if (blocks == null || blocks.isEmpty()) {
-            System.err.println("Error: Decoded prefab returned an empty or null block list!");
-            source.sendFailure(Component.literal("Prefab has no blocks!"));
-            return 0;
-        }
-
-        System.out.println("Successfully loaded prefab with " + blocks.size() + " blocks.");
-
         try {
+            System.out.println("Attempting to preview prefab: " + name);
+
+            CompoundTag tag = FileManagement.loadPrefab(name);
+            if (tag == null) {
+                System.err.println("Error: Prefab not found: " + name);
+                source.sendFailure(Component.literal("Prefab not found: " + name));
+                return 0;
+            }
+
+            System.out.println("Loaded prefab data: " + tag);
+
+            List<BlockData> blocks = PrefabDecoder.decodePrefab(tag);
+            if (blocks == null || blocks.isEmpty()) {
+                System.err.println("Error: Decoded prefab returned an empty or null block list!");
+                source.sendFailure(Component.literal("Prefab has no blocks!"));
+                return 0;
+            }
+
+            System.out.println("Successfully loaded prefab with " + blocks.size() + " blocks.");
+
             if (pos == null) {
                 System.err.println("Error: Provided position is null!");
                 source.sendFailure(Component.literal("Invalid preview position!"));
                 return 0;
             }
 
-            PrefabGhostRenderer.setPreview(blocks, pos);
+            System.out.println("Setting preview at position: " + pos);
+            PrefabRenderer.setPreview(blocks, pos);
             source.sendSuccess(Component.literal("Successfully viewing prefab"), true);
+
+            return 1;
         } catch (Exception e) {
-            source.sendFailure(Component.literal("Error trying to preview Prefab: " + e.getMessage()));
+            System.err.println("Critical Error in previewPrefab: " + e.getMessage());
             e.printStackTrace();
+            source.sendFailure(Component.literal("Unexpected error: " + e.getMessage()));
             return 0;
         }
-
-        source.sendSuccess(Component.literal("Previewing prefab: " + name), true);
-        return 1;
     }
 
 

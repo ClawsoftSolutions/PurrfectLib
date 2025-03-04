@@ -1,4 +1,4 @@
-package com.github.clawsoftsolutions.prefablib.utils;
+package com.github.clawsoftsolutions.purrfectlib.prefab.utils;
 
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;

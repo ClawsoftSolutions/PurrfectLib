@@ -1,6 +1,6 @@
-package com.github.clawsoftsolutions.prefablib.decoding;
+package com.github.clawsoftsolutions.purrfectlib.prefab.decoding;
 
-import com.github.clawsoftsolutions.prefablib.utils.BlockData;
+import com.github.clawsoftsolutions.purrfectlib.prefab.utils.BlockData;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.core.BlockPos;
