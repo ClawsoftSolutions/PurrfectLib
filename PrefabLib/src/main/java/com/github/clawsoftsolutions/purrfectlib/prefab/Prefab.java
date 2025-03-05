@@ -39,12 +39,7 @@ public class Prefab {
     public static class PrefabRenderingHandler {
         @SubscribeEvent
         public static void onRenderWorldLast(RenderLevelStageEvent event) {
-            if (PrefabRenderer.prefabBlocks != null) {
-                MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-                SuperRenderTypeBuffer buffers = new SuperRenderTypeBuffer(bufferSource);
-
-                PrefabRenderer.render(event.getPoseStack(), buffers);
-            }
+            PrefabRenderer.render(event.getPoseStack(), SuperRenderTypeBuffer.getInstance());
         }
 
     }

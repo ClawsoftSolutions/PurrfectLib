@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.util.RandomSource;
@@ -25,54 +26,73 @@ public class SuperByteBuffer {
         blockPositions.add(pos);
     }
 
-    public void render(PoseStack ms, VertexConsumer vertexConsumer) {
+    public void renderInto(PoseStack ms, VertexConsumer vertexConsumer) {
         Minecraft mc = Minecraft.getInstance();
+        RandomSource random = RandomSource.create();
+
         for (int i = 0; i < blockStates.size(); i++) {
             BlockState state = blockStates.get(i);
             BlockPos pos = blockPositions.get(i);
-            List<BakedQuad> quads = mc.getBlockRenderer()
-                    .getBlockModel(state)
-                    .getQuads(state, null, RandomSource.create());
+            if (state == null || pos == null) {
+                continue;
+            }
+
+            BakedModel model = mc.getBlockRenderer().getBlockModel(state);
+            if (model == null) {
+                continue;
+            }
+            List<BakedQuad> quads = model.getQuads(state, null, random);
+            int light = mc.level != null ? mc.level.getLightEngine().getRawBrightness(pos, 0) : LightTexture.FULL_BRIGHT;
 
             for (BakedQuad quad : quads) {
-                putBulkData(ms.last(), vertexConsumer, quad, 1.0f, 1.0f, 1.0f, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+                putBulkData(ms.last(), vertexConsumer, quad, 1.0f, 1.0f, 1.0f, 1.0f, OverlayTexture.NO_OVERLAY, light);
             }
         }
     }
 
-    public void renderInto(PoseStack ms, VertexConsumer vertexConsumer) {
-        render(ms, vertexConsumer);
-    }
 
     public void putBulkData(PoseStack.Pose pose, VertexConsumer vertexConsumer, BakedQuad quad,
-                            float r, float g, float b, int overlay, int light) {
+                            float r, float g, float b, float alpha, int overlay, int light) {
         int[] vertices = quad.getVertices();
         int vertexCount = vertices.length / 8;
 
-        Vector3f sourcePos = new Vector3f();
-        Vector3f transformedPos;
-        Vector3f sourceNormal = new Vector3f();
-        Vector3f transformedNormal;
+        if (pose == null) {
+            throw new IllegalStateException("PoseStack.Pose is null!");
+        }
 
-        FloatBuffer fb = BufferUtils.createFloatBuffer(16);
-        pose.pose().store(fb);
-        fb.flip();
+        // Extract 4x4 transformation matrix
+        FloatBuffer fbPose = BufferUtils.createFloatBuffer(16);
+        pose.pose().store(fbPose);
+        fbPose.flip();
         float[] matrix = new float[16];
-        fb.get(matrix);
+        fbPose.get(matrix);
 
+        // Extract 3x3 normal matrix using store()
         FloatBuffer fbNormal = BufferUtils.createFloatBuffer(9);
         pose.normal().store(fbNormal);
         fbNormal.flip();
         float[] normalMatrix = new float[9];
         fbNormal.get(normalMatrix);
 
+        Vector3f sourcePos = new Vector3f();
+        Vector3f transformedPos;
+        Vector3f sourceNormal = new Vector3f();
+        Vector3f transformedNormal;
+
         for (int i = 0; i < vertexCount; i++) {
+            if (vertices.length < (i * 8 + 7)) {
+                throw new IllegalStateException("Vertex data underfilled! Expected at least " + (i * 8 + 7) + " elements, but got " + vertices.length);
+            }
+
+            // Extract position data
             sourcePos.set(
                     Float.intBitsToFloat(vertices[i * 8]),
                     Float.intBitsToFloat(vertices[i * 8 + 1]),
                     Float.intBitsToFloat(vertices[i * 8 + 2])
             );
             transformedPos = Transform.transformVector4x4(matrix, sourcePos);
+
+            // Extract normal data
             sourceNormal.set(
                     Float.intBitsToFloat(vertices[i * 8 + 5]),
                     Float.intBitsToFloat(vertices[i * 8 + 6]),
@@ -80,9 +100,10 @@ public class SuperByteBuffer {
             );
             transformedNormal = Transform.transformVector3x3(normalMatrix, sourceNormal);
 
+            // Send vertex data to the consumer
             vertexConsumer
                     .vertex(transformedPos.x(), transformedPos.y(), transformedPos.z())
-                    .color(r, g, b, 1.0f)
+                    .color(r, g, b, alpha)
                     .uv(Float.intBitsToFloat(vertices[i * 8 + 3]), Float.intBitsToFloat(vertices[i * 8 + 4]))
                     .overlayCoords(overlay)
                     .uv2(light)
@@ -94,5 +115,9 @@ public class SuperByteBuffer {
 
     public boolean isEmpty() {
         return blockStates.isEmpty() || blockPositions.isEmpty();
+    }
+
+    public String remaining() {
+        return "BlockStates: " + blockStates.size() + ", BlockPositions: " + blockPositions.size();
     }
 }

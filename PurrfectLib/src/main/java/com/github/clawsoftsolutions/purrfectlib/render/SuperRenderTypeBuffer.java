@@ -1,5 +1,6 @@
 package com.github.clawsoftsolutions.purrfectlib.render;
 
+import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -9,11 +10,19 @@ import java.util.Map;
 
 public class SuperRenderTypeBuffer implements MultiBufferSource {
 
+    private static SuperRenderTypeBuffer instance;
     private final Map<RenderType, VertexConsumer> consumerCache = new HashMap<>();
-    private final BufferSource underlyingBuffer;
+    private final MultiBufferSource.BufferSource underlyingBuffer;
 
-    public SuperRenderTypeBuffer(BufferSource bufferSource) {
+    public SuperRenderTypeBuffer(MultiBufferSource.BufferSource bufferSource) {
         this.underlyingBuffer = bufferSource;
+    }
+
+    public static SuperRenderTypeBuffer getInstance() {
+        if (instance == null) {
+            instance = new SuperRenderTypeBuffer(MultiBufferSource.immediate(Tesselator.getInstance().getBuilder()));
+        }
+        return instance;
     }
 
     @Override
@@ -22,10 +31,7 @@ public class SuperRenderTypeBuffer implements MultiBufferSource {
     }
 
     public void endBatch(RenderType type) {
-        VertexConsumer consumer = consumerCache.get(type);
-        if (consumer instanceof BufferSource) {
-            underlyingBuffer.endBatch(type);
-        }
+        underlyingBuffer.endBatch(type);
     }
 
     public void endAll() {
@@ -33,4 +39,3 @@ public class SuperRenderTypeBuffer implements MultiBufferSource {
         consumerCache.clear();
     }
 }
-
