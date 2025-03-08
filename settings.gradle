@@ -14,4 +14,4 @@ plugins {
 
 rootProject.name = 'purrfectlib'
 
-include ":PurrfectLib", ":PrefabLib"
+include ":PurrfectLib"
