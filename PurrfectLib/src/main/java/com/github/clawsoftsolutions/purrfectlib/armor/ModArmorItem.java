@@ -1,32 +1,39 @@
 package com.github.clawsoftsolutions.purrfectlib.armor;
 
+import com.github.clawsoftsolutions.purrfectlib.model.Model;
+import com.google.gson.Gson;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 public class ModArmorItem extends ArmorItem {
     private final IModArmorMaterial material;
-    private final String mod_id;
+    private final String modId;
     private final ISpecialAbility specialAbility;
+    private final String modelPath;
 
-    public ModArmorItem(String mod_id, IModArmorMaterial material, EquipmentSlot slot, Properties properties, ISpecialAbility specialAbility) {
+    public ModArmorItem(String modId, IModArmorMaterial material, EquipmentSlot slot, Properties properties, ISpecialAbility specialAbility, String modelPath) {
         super(material, slot, properties);
         this.material = material;
-        this.mod_id = mod_id;
+        this.modId = modId;
         this.specialAbility = specialAbility;
+        this.modelPath = modelPath;
     }
 
-    /**
-     * Called when the player equips the armor. This will apply the special ability effect if it exists.
-     *
-     * @param stack The armor item being equipped.
-     * @param player The player wearing the armor.
-     */
-
     @Override
-    public void onArmorTick(ItemStack stack, net.minecraft.world.level.Level world, Player player) {
+    public void onArmorTick(ItemStack stack, Level world, Player player) {
         super.onArmorTick(stack, world, player);
 
         if (specialAbility != null) {
@@ -35,26 +42,40 @@ public class ModArmorItem extends ArmorItem {
     }
 
     /**
-     * Getter for the special ability.
-     *
-     * @return The special ability of the armor item.
+     * Returns the armor texture based on the equipped armor.
      */
-    public ISpecialAbility getSpecialAbility() {
-        return specialAbility;
+    @Override
+    public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
+        return String.format(modId + ":textures/models/armor/%s_layer_%d.png", material.getTextureName(), slot == EquipmentSlot.LEGS ? 2 : 1);
     }
 
     /**
-     * Getter for the armour texture.
+     * Getter for the armor model path (geo.json or bbmodel).
      *
-     * @param stack  ItemStack for the equipped armor
-     * @param entity The entity wearing the armor
-     * @param slot   The slot the armor is in
-     * @param type   The subtype, can be null or "overlay"
-     * @return The armor texture of the armor item
+     * @return The path of the model to be used for the armor.
      */
+    public String getArmorModelPath() {
+        return modelPath;
+    }
 
-    @Override
-    public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-        return String.format(mod_id + ":textures/models/armor/%s_layer_%d.png", material.getTextureName(), slot == EquipmentSlot.LEGS ? 2 : 1);
+    /**
+     * This method is used to load the armor model dynamically using the model path.
+     * Will return a model renderer based on your custom model files like geo.json or bbmodel.
+     */
+    public void loadArmorModel(PoseStack poseStack, VertexConsumer buffer, int light, int overlay) {
+        if (modelPath != null) {
+            try {
+                Model model = loadCustomModel(new ResourceLocation(modId, modelPath));
+                ArmorRenderer.render(poseStack, buffer, model, light, overlay);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private Model loadCustomModel(ResourceLocation modelPath) throws IOException {
+        InputStream stream = Minecraft.getInstance().getResourceManager().getResource(modelPath).get().open();
+        InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
+        return new Gson().fromJson(reader, Model.class);
     }
 }
