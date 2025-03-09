@@ -1,10 +1,8 @@
-package com.github.clawsoftsolutions.purrfectlib.prefab;
+package com.github.clawsoftsolutions.purrfectlib;
 
 import com.github.clawsoftsolutions.purrfectlib.prefab.command.PrefabCommand;
 import com.github.clawsoftsolutions.purrfectlib.prefab.renderering.PrefabRenderer;
 import com.github.clawsoftsolutions.purrfectlib.render.SuperRenderTypeBuffer;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -17,11 +15,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Mod("prefab")
-public class Prefab {
+public class Testing {
     public static final Logger LOG = LoggerFactory.getLogger("prefab");
 
 
-    public Prefab() {
+    public Testing() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         modEventBus.addListener(this::setup);
         MinecraftForge.EVENT_BUS.register(this);
